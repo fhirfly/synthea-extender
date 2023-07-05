@@ -1,0 +1,71 @@
+import pandas as pd
+import json
+# Load MRCONSO.RRF file into DataFrame
+mrconso = pd.read_csv('./input/MRCONSO.RRF', sep='|', header=None, names=['CUI', 'LAT', 'TS', 'LUI', 'STT', 'SUI', 'ISPREF', 'AUI', 'SAUI', 'SCUI', 'SDUI', 'SAB', 'TTY', 'CODE', 'STR', 'SRL', 'SUPPRESS', 'CVF'], index_col=False)
+#CUI: Concept Unique Identifier
+#LAT: Language of Term
+#TS: Term Status
+#LUI: Lexical Unique Identifier
+#STT: String Type
+#SUI: String Unique Identifier
+#ISPREF: Is Preferred
+#AUI: Atom Unique Identifier
+#SAUI: Source Asserted Atom Identifier (optional)
+#SCUI: Source Asserted Concept Identifier (optional)
+#SDUI: Source Asserted Descriptor Identifier (optional)
+#SAB: Source Abbreviation
+#TTY: Term Type in Source
+#CODE: Code in Source
+#STR: String
+#SRL: Source Restriction Level
+#SUPPRESS: Suppressible flag
+#CVF: Content View Flag (optional)
+# Filter the DataFrame for English language RxNorm concept names
+rxnorm_concepts = mrconso[(mrconso['SAB'] == 'RXNORM') & (mrconso['LAT'] == 'ENG')]
+
+# Initialize list to hold the medication resources
+
+with open('./output/Medication.ndjson', 'w') as f:
+# Iterate over RxNorm concepts
+    for idx, row in rxnorm_concepts.iterrows():
+        medication = {
+            'resourceType': 'Medication',
+            'id': row['AUI'],
+            'code': {
+                'coding': [{
+                    'system': 'http://www.nlm.nih.gov/research/umls/rxnorm',
+                    'code': row['CODE'],
+                    'display': row['STR']
+                }]
+            },
+            "ingredient": [
+                {
+                    "itemCodeableConcept": {
+                        "coding": [
+                            {
+                                "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+                                'code': row['CODE'],
+                                'display': row['STR']
+                            }
+                        ],
+                        "text": row['STR']
+                    }
+                    #"strength": {
+                    #    "numerator": {
+                    #        "value": 500,
+                    #       "unit": "mg",
+                    #        "system": "http://unitsofmeasure.org",
+                    #        "code": "mg"
+                    #    },
+                    #    "denominator": {
+                    #       "value": 1,
+                    #        "unit": "capsule",
+                    #        "system": "http://terminology.hl7.org/CodeSystem/v3-orderableDrugForm",
+                    #        "code": "C38192"
+                    #    }
+                    #}
+                }
+            ]
+        }
+        f.write(json.dumps(medication, separators=(',', ':')))
+        f.write('\n')
